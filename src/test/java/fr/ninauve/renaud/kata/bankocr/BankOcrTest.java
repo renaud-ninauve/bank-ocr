@@ -2,47 +2,67 @@ package fr.ninauve.renaud.kata.bankocr;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
-import java.util.Arrays;
 import java.util.List;
 
+import static fr.ninauve.renaud.kata.bankocr.BankOcrConstantsTest._000000000;
 import static java.util.Arrays.asList;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.when;
 
-@RunWith(Parameterized.class)
+@RunWith(MockitoJUnitRunner.class)
 public class BankOcrTest {
 
-    @Parameterized.Parameters
-    public static List<Object[]> params() {
+    @InjectMocks
+    private BankOcr bankOcr;
 
-        return asList(
-                new Object[]{ BankOcrConstantsTest._000000000, "000000000"},
-                new Object[]{ BankOcrConstantsTest._111111111, "111111111"},
-                new Object[]{ BankOcrConstantsTest._222222222, "222222222"},
-                new Object[]{ BankOcrConstantsTest._333333333, "333333333"},
-                new Object[]{ BankOcrConstantsTest._444444444, "444444444"},
-                new Object[]{ BankOcrConstantsTest._555555555, "555555555"},
-                new Object[]{ BankOcrConstantsTest._666666666, "666666666"},
-                new Object[]{ BankOcrConstantsTest._777777777, "777777777"},
-                new Object[]{ BankOcrConstantsTest._888888888, "888888888"},
-                new Object[]{ BankOcrConstantsTest._999999999, "999999999"});
-    }
+    @Mock
+    private AccountNumberParser parser;
+    @Mock
+    private AccountNumberValidator validator;
 
-    private final String lines;
-    private final String expected;
+    private static final List<String> ocr = asList(_000000000.split("\n"));
+    private static final String parseResult = "123456789";
+    private static final String parseResult_err = "123456789 ERR";
+    private static final String parseResult_ill = "123456789 ILL";
 
-    public BankOcrTest(String lines, String expected) {
-        this.lines = lines;
-        this.expected = expected;
+    @Test
+    public void return_account_number_only_when_ok() {
+
+
+        when(parser.parseToAccountNumber(ocr)).thenReturn(parseResult);
+        when(validator.validate(parseResult)).thenReturn(AccountNumberValidator.ValidationResult.OK);
+
+        final String actual = bankOcr.extractAccountNumberFromOcr(ocr);
+
+        assertThat(actual, is(parseResult));
     }
 
     @Test
-    public void parse() {
+    public void return_account_number_ill_when_bad_format() {
 
-        String[] splitLines = lines.split("\n");
-        String actual = new BankOcr().parseToAccountNumber(asList(splitLines));
-        assertThat(actual, is(expected));
+
+        when(parser.parseToAccountNumber(ocr)).thenReturn(parseResult);
+        when(validator.validate(parseResult)).thenReturn(AccountNumberValidator.ValidationResult.BAD_FORMAT);
+
+        final String actual = bankOcr.extractAccountNumberFromOcr(ocr);
+
+        assertThat(actual, is(parseResult_ill));
+    }
+
+    @Test
+    public void return_account_number_err_when_bad_checksum() {
+
+
+        when(parser.parseToAccountNumber(ocr)).thenReturn(parseResult);
+        when(validator.validate(parseResult)).thenReturn(AccountNumberValidator.ValidationResult.BAD_CHECKSUM);
+
+        final String actual = bankOcr.extractAccountNumberFromOcr(ocr);
+
+        assertThat(actual, is(parseResult_err));
     }
 }

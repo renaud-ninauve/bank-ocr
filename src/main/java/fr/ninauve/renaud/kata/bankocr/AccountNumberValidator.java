@@ -13,11 +13,16 @@ public class AccountNumberValidator {
         this.computeChecksum = computeChecksum;
     }
 
-    public boolean isValid(final String accountNumber) {
+    public ValidationResult validate(final String accountNumber) {
 
         if (!ACCOUNT_NUMBER_PATTERN.matcher(accountNumber).matches()) {
-            return false;
+            return ValidationResult.BAD_FORMAT;
         }
-        return computeChecksum.ofAccountNumber(accountNumber) == 0;
+        return computeChecksum.ofAccountNumber(accountNumber) == 0
+                ? ValidationResult.OK : ValidationResult.BAD_CHECKSUM;
+    }
+
+    public enum ValidationResult {
+        OK, BAD_FORMAT, BAD_CHECKSUM
     }
 }
